@@ -56,26 +56,7 @@ class CustomerController extends Controller
         
         ]);
 
-        $email = $request->get('emailaddress');
-        $greating = 'We are thrilled to welcome you to our Surfie Ethiopia family! Thank you for choosing us as your service provider';
-        $body = 'Surfie Ethiopia is a parental control Application which enables parents to monitor their childrens digital world interaction without limiting them, but supporting them. To learn more click the button below';
-        $closing = ' We promise to provide you with exceptional customer service and top-quality products to meet your needs. Our team is dedicated to ensuring your satisfaction and we are here to assist you at any time';
-        $footer = 'If you have any questions, concerns, or feedback. We value your input and look forward to hearing from you.';
-
-        $data = ([
-            'name' => $request->get('firstname'),
-            'email' => $request->get('emailaddress'),
-            'username' => $request->get('username'),
-            'phone' => $request->get('phone'),
-            'greating' => $greating,
-            'message'=>$body,
-            'closing' => $closing,
-            'footer' => $footer,
-            ]);
-            
-            Mail::to($email)->send(new WelcomeMail($data));
-          
-         
+        
         return response()->json('succeed');
     }
 
@@ -115,13 +96,7 @@ class CustomerController extends Controller
 
         $q = $request->get ( 'name' );
        return Customers::where('first_name','LIKE','%'.$q.'%')->orWhere('email','LIKE','%'.$q.'%')->orWhere('id','LIKE','%'.$q.'%')->get();
-        // if(count($customers) > 0)
-        //     return view('welcome')->withDetails($customers)->withQuery ( $q );
-        // else return view ('welcome')->withMessage('No Details found. Try to search again !');
-
-
-       // return Customers:: where('first_name', 'like', '%',$request->name,'%')->get();
-        //
+       
     }
 
      /**
@@ -208,6 +183,27 @@ class CustomerController extends Controller
                 $customer->update([
                     'status'=>$request->status
                 ]);
+
+                $email = $customer['email'];
+                $greating = 'We are thrilled to welcome you to our Surfie Ethiopia family! Thank you for choosing us as your service provider';
+                $body = 'Surfie Ethiopia is a parental control Application which enables parents to monitor their childrens digital world interaction without limiting them, but supporting them. To learn more click the button below';
+                $closing = 'We promise to provide you with exceptional customer service and top-quality products to meet your needs. Our team is dedicated to ensuring your satisfaction and we are here to assist you at any time';
+                $footer = 'If you have any questions, concerns, or feedback. We value your input and look forward to hearing from you.';
+
+                $data = ([
+                    'name' => $customer['first_name'],
+                    'email' => $customer['email'],
+                    'username' => $customer['username'],
+                    'phone' => $customer['phone'],
+                    'greating' => $greating,
+                    'message'=>$body,
+                    'closing' => $closing,
+                    'footer' => $footer,
+                    ]);
+            
+            Mail::to($email)->send(new WelcomeMail($data));
+          
+         
                 return response()->json('activated');
               }
 

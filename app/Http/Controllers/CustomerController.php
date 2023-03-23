@@ -40,7 +40,7 @@ class CustomerController extends Controller
     {
 
         Customers::create([
-
+             'remote_id' => $request->remote_id,
              'first_name' => $request->firstname,
              'middle_name' => $request->middlename,
              'last_name'  => $request->lastname,
@@ -206,6 +206,8 @@ class CustomerController extends Controller
          
                 return response()->json('activated');
               }
+
+            
 
        
 }

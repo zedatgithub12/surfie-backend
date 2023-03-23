@@ -16,6 +16,7 @@ jobs:
         server: ${{ secrets.ftp_server}}
          username: ${{ secrets.ftp_username}}
          password: ${{ secrets.ftp_password}}
+
     - uses: actions/checkout@v3
     - name: Copy .env
       run: php -r "file_exists('.env') || copy('.env.example', '.env');"
@@ -27,6 +28,14 @@ jobs:
       run: php artisan storage link
     - name: Directory Permissions
       run: chmod -R 777 storage bootstrap/cache
+    - name: sync files
+      uses: shivammathur/FTP-Deploy-Actions@4.0.0
+      with: 
+         server: ${{ secrets.ftp_server}}
+         username: ${{ secrets.ftp_username}}
+         password: ${{ secrets.ftp_password}}
+
+
     - name: Create Database
       run: |
         mkdir -p surfie

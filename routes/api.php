@@ -38,6 +38,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::put('remove/{id}', [CustomerController::class, 'remove']);
     Route::put('deactivate/{id}', [CustomerController::class, 'deactivate']);
     Route::put('detach/{id}', [CustomerController::class, 'detach']);
+  
 
 
     Route::get('pending', [CustomerController::class, 'counts']);

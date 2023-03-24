@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Customers extends Model
 {
     use HasFactory;
-
+    
     protected $fillable = ["remote_id","first_name", "middle_name","last_name", "email","phone",
     "living_address", "username","password", "license", "subscription", "payment_method", "status"];
 }

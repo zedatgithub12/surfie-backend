@@ -34,20 +34,10 @@ class Compose extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            from: new Address('zerihuntegenu5@gmail.com', 'Surfie Ethiopia'),
+            from: new Address('surfieethiopia@gmail.com', 'Surfie Ethiopia'),
             subject: $this->data['subject'],
         );
     }
-
-    /**
-     * Get the message content definition.
-     */
-    // public function content(): Content
-    // {
-    //     return new Content(
-    //         view: 'emails.compose',
-    //     );
-    // }
 
     /**
      * Get the attachments for the message.

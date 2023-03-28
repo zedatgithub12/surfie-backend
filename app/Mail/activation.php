@@ -10,7 +10,7 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
 
-class Reminder extends Mailable
+class activation extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -26,7 +26,7 @@ class Reminder extends Mailable
 
     public function build()
     {       
-            return $this->markdown('emails.reminder');
+            return $this->markdown('emails.activation');
     }
    /**
      * Get the message envelope.
@@ -35,9 +35,10 @@ class Reminder extends Mailable
     {
         return new Envelope(
             from: new Address('surfieethiopia@gmail.com', 'Surfie Ethiopia'),
-            subject: 'Reminder!',
+            subject: 'Account Activation!',
         );
     }
+
     /**
      * Get the attachments for the message.
      *

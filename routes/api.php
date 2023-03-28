@@ -30,7 +30,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::post('refresh', [AuthController::class, 'refresh']);
     Route::post('me',[AuthController::class, 'me']);
     });
-
     
     Route::resource('customers', CustomerController::class);
     Route::get('search', [CustomerController::class, 'search']);
@@ -38,11 +37,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::put('remove/{id}', [CustomerController::class, 'remove']);
     Route::put('deactivate/{id}', [CustomerController::class, 'deactivate']);
     Route::put('detach/{id}', [CustomerController::class, 'detach']);
-
-
+  
     Route::get('pending', [CustomerController::class, 'counts']);
     Route::put('activate/{id}', [CustomerController::class, 'activate']);
-
 
     Route::get('support', [SupportController::class, 'index']);
     Route::put('closeticket/{id}', [SupportController::class, 'close']);

@@ -9,6 +9,12 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
 use App\Models\Customers;
 use App\Mail\WelcomeMail;
+use App\Mail\activation;
+use App\Mail\deactivation;
+use App\Mail\reactivation;
+use App\Mail\expired;
+use App\Mail\renewed;
+
 
 class CustomerController extends Controller
 {
@@ -38,6 +44,8 @@ class CustomerController extends Controller
      */
     public function store(Request $request)
     {
+  if($request->subscription === "annual"){
+    $dueDate = Carbon::now()->addYear();
 
         Customers::create([
              'remote_id' => $request->remote_id,
@@ -51,46 +59,38 @@ class CustomerController extends Controller
              'password'  => bcrypt($request->password),
              'license' => $request->license,
              'subscription' => $request->subscription,
+             'duedate' => $dueDate,
              'payment_method'=> $request->payment,
              'status' => $request->status,
         
         ]);
+    }
+    else {
+        $dueDate = Carbon::now()->addMonth();
 
+        Customers::create([
+             'remote_id' => $request->remote_id,
+             'first_name' => $request->firstname,
+             'middle_name' => $request->middlename,
+             'last_name'  => $request->lastname,
+             'email' => $request->emailaddress,
+             'phone' => $request->phone,
+             'living_address' => $request->address,
+             'username' => $request->username,
+             'password'  => bcrypt($request->password),
+             'license' => $request->license,
+             'subscription' => $request->subscription,
+             'duedate' => $dueDate,
+             'payment_method'=> $request->payment,
+             'status' => $request->status,
+        
+        ]);
+    
+    }
         
         return response()->json('succeed');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
-    }
     public function search(Request $request)
     {
 
@@ -133,6 +133,17 @@ class CustomerController extends Controller
           $customer->update([
               'status'=>$request->cstatus
           ]);
+          $email = $customer['email'];
+          $body = 'It appears that your Surfie Ethiopia  account has been deactivated. Please contact the system administrator or customer support for further assistance in reactivating your account.';
+          $data = ([
+              'name' => $customer['first_name'],
+              'email' => $customer['email'],
+              'message'=>$body,
+              ]);
+      
+         Mail::to($email)->send(new deactivation($data));
+    
+   
           return response()->json('deactivated');
       }
 
@@ -147,7 +158,7 @@ class CustomerController extends Controller
            return response()->json('detached');
        }
 
-              // deactivate user account
+              // retrive counts from database
               public function counts()
               {                   
                 $pendings = Customers::get()->where('status',0)->count();
@@ -176,6 +187,8 @@ class CustomerController extends Controller
                  return response()->json($compacted);
               }
 
+
+
               public function activate(Request $request, string $id)
               {
                 $customer = Customers::whereId($id)->first();
@@ -185,29 +198,20 @@ class CustomerController extends Controller
                 ]);
 
                 $email = $customer['email'];
-                $greating = 'We are thrilled to welcome you to our Surfie Ethiopia family! Thank you for choosing us as your service provider';
-                $body = 'Surfie Ethiopia is a parental control Application which enables parents to monitor their childrens digital world interaction without limiting them, but supporting them. To learn more click the button below';
-                $closing = 'We promise to provide you with exceptional customer service and top-quality products to meet your needs. Our team is dedicated to ensuring your satisfaction and we are here to assist you at any time';
-                $footer = 'If you have any questions, concerns, or feedback. We value your input and look forward to hearing from you.';
+                $greating = 'We would like to inform you that your Surfie Ethiopia account has been successfully activated. You can now start using the system to monitor and control your childs online activities.';
+                $body = 'Please make sure to regularly check for any updates or changes in our website  If you have any questions or concerns, please do not hesitate to reach out to our support team.';
+                $closing = 'Thank you for choosing Surfie Ethiopia  to help keep your child safe online.';
 
                 $data = ([
                     'name' => $customer['first_name'],
                     'email' => $customer['email'],
-                    'username' => $customer['username'],
-                    'phone' => $customer['phone'],
                     'greating' => $greating,
                     'message'=>$body,
                     'closing' => $closing,
-                    'footer' => $footer,
                     ]);
             
-            Mail::to($email)->send(new WelcomeMail($data));
-          
-         
+               Mail::to($email)->send(new activation($data));
                 return response()->json('activated');
               }
 
-            
-
-       
 }

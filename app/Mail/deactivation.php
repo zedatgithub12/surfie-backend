@@ -9,8 +9,9 @@ use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Mail\Mailables\Address;
 use Illuminate\Queue\SerializesModels;
+use App\Models\Customers;
 
-class Reminder extends Mailable
+class deactivation extends Mailable
 {
     use Queueable, SerializesModels;
 
@@ -26,7 +27,7 @@ class Reminder extends Mailable
 
     public function build()
     {       
-            return $this->markdown('emails.reminder');
+            return $this->markdown('emails.deactivation');
     }
    /**
      * Get the message envelope.
@@ -35,9 +36,20 @@ class Reminder extends Mailable
     {
         return new Envelope(
             from: new Address('surfieethiopia@gmail.com', 'Surfie Ethiopia'),
-            subject: 'Reminder!',
+            subject: 'Account Deactivation!',
         );
     }
+
+    /**
+     * Get the message content definition.
+     */
+    // public function content(): Content
+    // {
+    //     return new Content(
+    //          markdown('emails.deactivation')
+    //     );
+    // }
+
     /**
      * Get the attachments for the message.
      *

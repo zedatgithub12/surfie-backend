@@ -25,6 +25,7 @@ return new class extends Migration
             $table->string("password");
             $table->integer("license");
             $table->string("subscription");
+            $table->string("duedate");
             $table->integer("payment_method");
             $table->integer("status")->nullable();
             $table->timestamps();

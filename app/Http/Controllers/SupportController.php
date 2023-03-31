@@ -27,10 +27,9 @@ class SupportController extends Controller
       
 
         Support::create([
-
              'fullname' => $request->fullname,
              'email' => $request->email,
-             'description'  => $request->description,
+             'description'  => $request->message,
              'status' => $request->status,
         
         ]);

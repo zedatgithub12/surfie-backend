@@ -6,6 +6,7 @@ use App\HTTP\Controllers\AuthController;
 use App\HTTP\Controllers\CustomerController;
 use App\HTTP\Controllers\SupportController;
 use App\HTTP\Controllers\MailController;
+use App\HTTP\Controllers\TrialController;
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -40,8 +41,12 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
   
     Route::get('pending', [CustomerController::class, 'counts']);
     Route::put('activate/{id}', [CustomerController::class, 'activate']);
-
+    Route::put('reactivate/{id}', [CustomerController::class, 'reactivate']);
+    Route::post('newquery', [SupportController::class, 'store']);
     Route::get('support', [SupportController::class, 'index']);
     Route::put('closeticket/{id}', [SupportController::class, 'close']);
 
     Route::post('compose', [MailController::class, 'send']);
+
+    //free trial email collection field
+    Route::resource('trial', TrialController::class);

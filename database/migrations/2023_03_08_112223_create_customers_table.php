@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('customers', function (Blueprint $table) {
 
             $table->id();
-            $table->int("remote_id");
+            $table->int("remote_id")->nullable();
             $table->string("first_name");
             $table->string("middle_name")->nullable();
             $table->string("last_name")->nullable();
@@ -27,6 +27,7 @@ return new class extends Migration
             $table->string("subscription");
             $table->string("duedate");
             $table->integer("payment_method");
+            $table->integer("coupon")->nullable();
             $table->integer("status")->nullable();
             $table->timestamps();
 

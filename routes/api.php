@@ -7,6 +7,9 @@ use App\HTTP\Controllers\CustomerController;
 use App\HTTP\Controllers\SupportController;
 use App\HTTP\Controllers\MailController;
 use App\HTTP\Controllers\TrialController;
+use App\HTTP\Controllers\CouponController;
+use App\HTTP\Controllers\PaymentController;
+
 /*
 |--------------------------------------------------------------------------
 | API Routes
@@ -50,3 +53,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
     //free trial email collection field
     Route::resource('trial', TrialController::class);
+   
+    // coupon code 
+    Route::post('coupon/{id}', [CouponController::class, 'show']);
+
+    //payment Gateways 
+    Route::get('verify/{id}', [CustomerController::class, 'verifyTransaction']);

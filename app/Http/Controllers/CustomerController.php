@@ -28,7 +28,9 @@ class CustomerController extends Controller
     protected $baseUrl;
     protected $secretHash;
     public $surfieUrl;
-    
+    protected $username;
+    protected $password;
+
     function __construct()
     {
         
@@ -36,18 +38,12 @@ class CustomerController extends Controller
         $this->secretKey = env('CHAPA_SECRET_KEY');
         $this->secretHash = env('CHAPA_WEBHOOK_SECRET');
         $this->baseUrl = 'https://api.chapa.co/v1';
-        $this->surfieUrl = 'https://admin.surfieethiopia.com/backend/api/verify/';
-        
+        $this->surfieUrl = 'http://localhost:8000/api/chapa/';
+        $this->username=  env('REMOTE_USERNAME');
+        $this->password =env('REMOTE_PASSWORD');
     } 
 
-    public static function generateReference(String $transactionPrefix = NULL)
-    {
-        if ($transactionPrefix) {
-            return $transactionPrefix . '_' . uniqid(time());
-        }
-        
-        return 'chapa_' . uniqid(time());
-    }
+ 
 
     /**
      * Display a listing of the resource.
@@ -59,15 +55,7 @@ class CustomerController extends Controller
          return response()-> json($customers, 200);
         
         //  return response()-> json(Customers::get());
-        //
-    }
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
+        
     }
 
     /**
@@ -86,7 +74,7 @@ class CustomerController extends Controller
         $message = "1022";
          }
         else{
-                $cid = Customers::insertGetId([
+                $cid = Customers::create([
                  'first_name' => $request->firstname,
                  'middle_name' => $request->middlename,
                  'last_name'  => $request->lastname,
@@ -100,29 +88,24 @@ class CustomerController extends Controller
                  'payment_method'=> $request->payment,
                  'coupon'=> $request->coupon,
                  'status' => $request->status,
-            
             ]);
 
             $message = "0";
-            
-         
         }
 
-        if(!($request->payment== "1000") && $message === "0"){
+        if(!($request->payment== "1000") && $message == "0"){
             return $this->payment($request, $cid);
-            
           }
           else {
             return response()->json($message, 200);
           }
-      
     }
 
   // price generator 
     public function pricing($license, $subscription){
         $price = "";
-// reinitiate price depending on user preferences
- if($license == "3" && $subscription === "monthly"){
+    // reinitiate price depending on user preferences
+     if($license == "3" && $subscription === "monthly"){
          $price = "450";
            }
            else if($license == "5" && $subscription === "monthly"){
@@ -144,59 +127,89 @@ class CustomerController extends Controller
 
                            return intval($price);
     }
+    function referenceNo() {
+        // Get the current timestamp
+        $timestamp = microtime(true);
+    
+        // Generate a random number
+        $randomNumber = mt_rand(1000, 9999);
+    
+        // Combine the timestamp and random number
+        $referenceNumber =  $timestamp . $randomNumber;
+
+        return 'surfie' . $referenceNumber;
+    }
+
 
     // payment initializer
     public function Payment($request, $cid){
 
-                               $amount= $this->pricing($request->license, $request->subscription);
-                                  // we check if the coupon code applied is exist in the database 
-                                  //we retrive the amount of money coupon code holds -- which is subsctructed from the price
-                                     if (isset($request->coupon)) {
-                                         $exist =  Coupon::query()->where('code',$request->coupon)->exists(); //check if the coupon code exist
-                                          if($exist){
-                                                $coupons = Coupon::where('code',$request->coupon)->where('quantity', '>', 2)->first();
-                                                $amount = $this->pricing($request->license, $request->subscription) - $coupons->amount;
-                                            if ($coupons) {
-                                                Coupon::where('id', $coupons->id)->decrement('quantity');
-                                            }
-                                         }
-                                     }
-     
-                     $txn_ref = 'chapa_' . uniqid(time()); //chapa transaction reference
-                     $data = ([
-                         'amount'=>$amount,
-                         'currency'=> 'ETB',
-                         'first_name' => $request->firstname,
-                         'last_name'  => $request->middlename,
-                         'email' => $request->emailaddress,
-                         'tx_ref' => $txn_ref,
-                         'callback_url'=> $this->surfieUrl . $cid,
-                         'customaization[title]' => $request->license,
-                         'customaization[description]'=> $request->subscription,
-                     ]);
+            $amount= $this->pricing($request->license, $request->subscription);
+               // we check if the coupon code applied is exist in the database 
+               //we retrive the amount of money coupon code holds -- which is subsctructed from the price
+                  if (isset($request->coupon)) {
+                      $exist =  Coupon::query()->where('code',$request->coupon)->exists(); //check if the coupon code exist
+                       if($exist){
+                             $coupons = Coupon::where('code',$request->coupon)->where('quantity', '>', 2)->first();
+                             $amount = $this->pricing($request->license, $request->subscription) - $coupons->amount;
+                         if ($coupons) {
+                             Coupon::where('id', $coupons->id)->decrement('quantity');
+                         }
+                      }
+                  }
 
+          $id = $cid['id'];
+          $txn_ref = $this->referenceNo(); //chapa transaction reference
+            $data = ([
+                'amount'=>$amount,
+                'currency'=> 'ETB',
+                'first_name' => $request->firstname,
+                'last_name'  => $request->lastname,
+                'email' => $request->emailaddress,
+                'tx_ref' => $txn_ref, 
+                'callback_url'=> $this->surfieUrl . $txn_ref,
+                "customization[title]"=> $id,
+                
+            ]);
+            $message="";
                       if($request->payment == "1001"){
-                      $payment = Http::withToken($this->secretKey)->post(
+                      $chapaResponse = Http::withToken($this->secretKey)->post(
                           $this->baseUrl . '/transaction/initialize',
                           $data
                       )->json();
-                     return $payment;
+
+                      if($chapaResponse){
+                      $payment = json_encode($chapaResponse);
+                      $link = json_decode($payment);
+
+                      if($link->status == "success"){
+                        $checkout_url = $link->data->checkout_url;
+                        $message= $chapaResponse;
+                       
                       }
-          
-                  return response()->json($payment, 200);
+                      else {
+                          $message ="41";
+                      }
+                    }
+                    else {
+                        $message ="41";
+                    }
+ }
+
+                
+                  return response()->json($link, 200);
     }
 
+
+  
+     
 
     /**
      * Reaches out to Chapa to verify a transaction
      * @param $id
      * @return object
      */
-    public function verifyTransaction($id)
-    {
-        $data =  Http::withToken($this->secretKey)->get($this->baseUrl . "/transaction/" . 'verify/'. $id )->json();
-        return $data;
-    }
+  
 
 
 
@@ -217,7 +230,7 @@ class CustomerController extends Controller
         $user= "PSTEST-7620f683";
         $password= "pste5682bb";
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$user&adminPassword=$password");
+        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -245,7 +258,7 @@ class CustomerController extends Controller
         $user= "PSTEST-7620f683";
         $password= "pste5682bb";
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$user&adminPassword=$password");
+        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -253,7 +266,7 @@ class CustomerController extends Controller
 
         if($response->ok() &&  $resid == 0){
             
-            $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$user&adminPassword=$password");
+            $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
       
             $xml = new SimpleXMLElement($response);
                 $status = $xml->Status;
@@ -282,11 +295,8 @@ class CustomerController extends Controller
       // deactivate user account
       public function deactivate(Request $request, string $id)
       {
-          
-        $user= "PSTEST-7620f683";
-        $password= "pste5682bb";
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DeactivateAccount.py?accountId=$request->remoteid&adminUser=$user&adminPassword=$password");
+        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DeactivateAccount.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -323,7 +333,7 @@ class CustomerController extends Controller
         $user= "PSTEST-7620f683";
         $password= "pste5682bb";
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DetachUserCredentials.py?accountId=$request->remoteid&adminUser=$user&adminPassword=$password");
+        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DetachUserCredentials.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -350,19 +360,12 @@ class CustomerController extends Controller
               {
 
                 $customer = Customers::whereId($id)->first();
-  
-
-                $user= "PSTEST-7620f683";
-                $password= "pste5682bb";
-        
-                $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/CreateAccountWithPackageId.py?adminUser=$user&adminPassword=$password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
-              
+                $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
                 $xml = new SimpleXMLElement($response);
                     $status = $xml->Status;
                     $resid = (int) $status->attributes()->id;
-                
+
                 if($response->ok() &&  $resid == 0){
-        
                    $data = $xml->Data->Account;
                    $accountid = (string)  $data->attributes()->account_id;
                 

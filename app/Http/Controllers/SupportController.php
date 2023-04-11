@@ -16,9 +16,9 @@ class SupportController extends Controller
     public function index(Request $request)
     {
      
-         $queries = Support::query()->orderByDesc('id');
+         $queries = Support::query()->orderByDesc('id')->get();
 
-         return response()-> json(Support::get());
+         return response()-> json( $queries);
         //
     }
 

@@ -6,7 +6,7 @@ Dear {{$data['name']}},
 
 {{$data['message']}},<br>
 
-@component('mail::button', ['url' => 'https://afromina-digitals.com'])
+@component('mail::button', ['url' => 'http://surfieethiopia.com'])
 Visit Us
 @endcomponent
 

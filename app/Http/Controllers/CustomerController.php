@@ -30,6 +30,7 @@ class CustomerController extends Controller
     public $surfieUrl;
     protected $username;
     protected $password;
+    protected $remoteUrl;
 
     function __construct()
     {
@@ -41,6 +42,7 @@ class CustomerController extends Controller
         $this->surfieUrl = 'http://localhost:8000/api/chapa/';
         $this->username=  env('REMOTE_USERNAME');
         $this->password =env('REMOTE_PASSWORD');
+        $this->remoteUrl = 'https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/';
     } 
 
  
@@ -55,9 +57,12 @@ class CustomerController extends Controller
          return response()-> json($customers, 200);
         
         //  return response()-> json(Customers::get());
-        
     }
 
+    public function singlec(string $id){
+        $customer = Customers::whereId($id)->get();
+        return response()->json($customer, 200);
+    }
     /**
      * Store a newly created resource in storage.
      */
@@ -195,24 +200,8 @@ class CustomerController extends Controller
                         $message ="41";
                     }
  }
-
-                
                   return response()->json($link, 200);
     }
-
-
-  
-     
-
-    /**
-     * Reaches out to Chapa to verify a transaction
-     * @param $id
-     * @return object
-     */
-  
-
-
-
 
     public function search(Request $request)
     {
@@ -251,14 +240,12 @@ class CustomerController extends Controller
         return response()->json($message, 200);
     }
 
-
     // downgrade number of license 
     public function remove(Request $request, string $id)
     {
-        $user= "PSTEST-7620f683";
-        $password= "pste5682bb";
+      
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$this->username&adminPassword=$this->password");
+        $response = Http::get($this->remoteUrl . "AddSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->package&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -266,7 +253,7 @@ class CustomerController extends Controller
 
         if($response->ok() &&  $resid == 0){
             
-            $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
+            $response = Http::get($this->remoteUrl . "RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
       
             $xml = new SimpleXMLElement($response);
                 $status = $xml->Status;
@@ -285,18 +272,18 @@ class CustomerController extends Controller
             $message = $identity;
             }
 
-    }else {
+       }else {
         $message = $resid;
-    }
+        }
         return response()->json($message, 200);
     }
 
 
       // deactivate user account
-      public function deactivate(Request $request, string $id)
+    public function deactivate(Request $request, string $id)
       {
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DeactivateAccount.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
+        $response = Http::get($this->remoteUrl . "DeactivateAccount.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -327,13 +314,13 @@ class CustomerController extends Controller
       }
 
        // detach user account
-       public function detach(Request $request, string $id)
+    public function detach(Request $request, string $id)
        {
                
         $user= "PSTEST-7620f683";
         $password= "pste5682bb";
 
-        $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/DetachUserCredentials.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
+        $response = Http::get($this->remoteUrl . "DetachUserCredentials.py?accountId=$request->remoteid&adminUser=$this->username&adminPassword=$this->password");
       
         $xml = new SimpleXMLElement($response);
             $status = $xml->Status;
@@ -356,11 +343,11 @@ class CustomerController extends Controller
        }
 
 
-              public function activate(Request $request, string $id)
+    public function activate(Request $request, string $id)
               {
 
                 $customer = Customers::whereId($id)->first();
-                $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
+                $response = Http::get($this->remoteUrl . "CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
                 $xml = new SimpleXMLElement($response);
                     $status = $xml->Status;
                     $resid = (int) $status->attributes()->id;
@@ -418,7 +405,7 @@ class CustomerController extends Controller
                 $user= "PSTEST-7620f683";
                 $password= "pste5682bb";
         
-                $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/ActivateAccount.py?accountId=$request->remote_id&adminUser=$user&adminPassword=$password");
+                $response = Http::get($this->remoteUrl . "ActivateAccount.py?accountId=$request->remote_id&adminUser=$user&adminPassword=$password");
               
                 $xml = new SimpleXMLElement($response);
                     $status = $xml->Status;
@@ -457,7 +444,7 @@ class CustomerController extends Controller
               }
 
               // retrive counts from database
-              public function counts()
+    public function counts()
               {                   
                 $pendings = Customers::get()->where('status',0)->count();
                 $actives = Customers::get()->where('status',1)->count();

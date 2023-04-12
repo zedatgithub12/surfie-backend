@@ -22,6 +22,7 @@ class PaymentController extends Controller
     protected $secretHash;
     protected $username;
     protected $password;
+    protected $remoteUrl;
     
     function __construct()
     {
@@ -32,8 +33,22 @@ class PaymentController extends Controller
         $this->baseUrl = 'https://api.chapa.co/v1';
         $this->username=  env('REMOTE_USERNAME');
         $this->password =env('REMOTE_PASSWORD');
+        $this->remoteUrl = 'https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/';
         
     }    
+
+/**
+     * Display a listing of the resource.
+     */
+    public function index(Request $request)
+    {
+     
+         $payments = Payment::query()->orderByDesc('id')->paginate(12);
+         return response()-> json($payments, 200);
+        
+
+    }
+
 
     
   
@@ -71,7 +86,7 @@ class PaymentController extends Controller
           {
           
             $customer = Customers::whereId($id)->first();
-            $response = Http::get("https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
+            $response = Http::get($this->remoteUrl . "CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
             $xml = new SimpleXMLElement($response);
                 $status = $xml->Status;
                 $resid = (int) $status->attributes()->id;

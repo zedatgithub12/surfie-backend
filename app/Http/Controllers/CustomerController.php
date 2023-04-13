@@ -39,7 +39,7 @@ class CustomerController extends Controller
         $this->secretKey = env('CHAPA_SECRET_KEY');
         $this->secretHash = env('CHAPA_WEBHOOK_SECRET');
         $this->baseUrl = 'https://api.chapa.co/v1';
-        $this->surfieUrl = 'http://localhost:8000/api/chapa/';
+        $this->surfieUrl = 'http://localhost:8000/api/chapap/';
         $this->username=  env('REMOTE_USERNAME');
         $this->password =env('REMOTE_PASSWORD');
         $this->remoteUrl = 'https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/';

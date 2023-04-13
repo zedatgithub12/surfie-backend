@@ -59,6 +59,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::post('coupon/{id}', [CouponController::class, 'show']);
 
     //payment Gateways
-    Route::resource('chapa', PaymentController::class);
-    Route::get('chapa/{id}', [PaymentController::class, 'chapaResponse']);
+    Route::get('chapa', [PaymentController::class, 'index']);
+    Route::get('chapap/{id}', [PaymentController::class, 'chapaResponse']);
    

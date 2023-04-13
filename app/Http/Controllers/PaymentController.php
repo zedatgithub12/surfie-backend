@@ -58,7 +58,7 @@ class PaymentController extends Controller
         $stringifyVerify = json_encode($verification);
         $response = json_decode($stringifyVerify);
         $message="";
-        if($response->status == "success"){
+        if($response->status === "success"){
 
             $paid = Payment::create([
                 'customer_id'=> $response->data->customization->title,

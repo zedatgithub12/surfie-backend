@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Mail;
-
+use Illuminate\Support\Facades\Storage;
 class PaymentController extends Controller
 {
     //
@@ -54,6 +54,7 @@ class PaymentController extends Controller
   
     public function chapaResponse($id)
     {
+        $timestamp = Carbon::now();
         $verification =  Http::withToken($this->secretKey)->get($this->baseUrl . "/transaction/" . 'verify/'. $id )->json();
         $stringifyVerify = json_encode($verification);
         $response = json_decode($stringifyVerify);
@@ -79,12 +80,21 @@ class PaymentController extends Controller
             }
             else{
                 $message="no";
+                $customerId = $response->data->customization->title;
+                $amount = $response->data->amount;
+                $Currency = $response->data->currency;
+                $reference = $response->data->reference;
+                Storage::disk('local')->append('Paymentlogs.txt', 'The customer with ID '. $customerId. ' and reference $reference have paid'.  $amount . $Currency .'at'. $timestamp .'and the info did not added to database');
             }
         }    
+        else {
+            Storage::disk('local')->append('Paymentlogs.txt', 'payment verification with reference number '. $id. ' have failed');
+        
+        }
 }        
           public function activate($id)
           {
-          
+            $timestamp = Carbon::now();
             $customer = Customers::whereId($id)->first();
             $response = Http::get($this->remoteUrl . "CreateAccountWithPackageId.py?adminUser=$this->username&adminPassword=$this->password&email=$customer[email]&phoneNumber=$customer[phone]&packageId=AFROMINA_$customer[license]&subscriptionId=1&externalRef=AFROMINA");
             $xml = new SimpleXMLElement($response);
@@ -101,36 +111,41 @@ class PaymentController extends Controller
                          } 
                          else {
                            $dueDate = Carbon::now()->addMonth();
-                         }
-            $customer->update([
-                'remote_id' => $accountid,
-                'duedate' => $dueDate,
-                'status'=>'1',
+                                      }
+                         $customer->update([
+                             'remote_id' => $accountid,
+                             'duedate' => $dueDate,
+                             'status'=>'1',
+                             
+                         ]);
+
+                    $email = $customer['email'];
+                    $greating = 'We would like to inform you that your Surfie Ethiopia account has been successfully activated. You can now start using the system to monitor and control your childs online activities.';
+                    $body = 'Please make sure to regularly check for any updates or changes in our website  If you have any questions or concerns, please do not hesitate to reach out to our support team.';
+                    $closing = 'Thank you for choosing Surfie Ethiopia  to help keep your child safe online.';
+        
+                    $data = ([
+                        'name' => $customer['first_name'],
+                        'email' => $customer['email'],
+                        'greating' => $greating,
+                        'message'=>$body,
+                        'closing' => $closing,
+                        ]);
                 
-            ]);
-            $message = $resid;
+                    Mail::to($email)->send(new activation($data));
+                    $message = $resid;
+
                }
                else if($response->serverError()){
            
                    $message = "500";
+                   Storage::disk('local')->append('Paymentlogs.txt', $resid. ' The customer with ID '. $id .' is paid the fee but can not get activated! '.$timestamp);
                }
                else {
                    $message = $resid;
+                   Storage::disk('local')->append('Paymentlogs.txt', $resid. 'unable to activate an account. The customer with ID '. $id. ' have paid the fee but can not get activated! '. $timestamp);
                }
-                   $email = $customer['email'];
-                   $greating = 'We would like to inform you that your Surfie Ethiopia account has been successfully activated. You can now start using the system to monitor and control your childs online activities.';
-                   $body = 'Please make sure to regularly check for any updates or changes in our website  If you have any questions or concerns, please do not hesitate to reach out to our support team.';
-                   $closing = 'Thank you for choosing Surfie Ethiopia  to help keep your child safe online.';
-          
-                   $data = ([
-                       'name' => $customer['first_name'],
-                       'email' => $customer['email'],
-                       'greating' => $greating,
-                       'message'=>$body,
-                       'closing' => $closing,
-                       ]);
-               
-                  Mail::to($email)->send(new activation($data));
+                 
                    return response()->json($message, 200);
                  }
           }

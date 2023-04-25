@@ -36,6 +36,7 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     });
     
     Route::resource('customers', CustomerController::class);
+    Route::get('singlecustomer/{id}', [CustomerController::class, 'singlec']);
     Route::get('search', [CustomerController::class, 'search']);
     Route::put('add/{id}', [CustomerController::class, 'add']);
     Route::put('remove/{id}', [CustomerController::class, 'remove']);
@@ -58,5 +59,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::post('coupon/{id}', [CouponController::class, 'show']);
 
     //payment Gateways
-    Route::get('chapa/{id}', [PaymentController::class, 'chapaResponse']);
+    Route::get('chapa', [PaymentController::class, 'index']);
+    Route::get('chapap/{id}', [PaymentController::class, 'chapaResponse']);
    

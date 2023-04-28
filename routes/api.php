@@ -9,6 +9,7 @@ use App\HTTP\Controllers\MailController;
 use App\HTTP\Controllers\TrialController;
 use App\HTTP\Controllers\CouponController;
 use App\HTTP\Controllers\PaymentController;
+use App\HTTP\Controllers\PartnerController;
 
 /*
 |--------------------------------------------------------------------------
@@ -25,6 +26,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
+Route::middleware('auth:sanctum')->get('/partners', function (Request $request) {
+    return $request->partners();
+});
 
 
     Route::post('login', [AuthController::class, 'login']);
@@ -62,3 +66,6 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     Route::get('chapa', [PaymentController::class, 'index']);
     Route::get('chapap/{id}', [PaymentController::class, 'chapaResponse']);
    
+    //partner Api's
+    Route::post('pregister', [PartnerController::class, 'register']);
+    Route::post('partnerlogin', [PartnerController::class, 'login']);

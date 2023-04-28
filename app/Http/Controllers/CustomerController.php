@@ -42,7 +42,7 @@ class CustomerController extends Controller
         $this->surfieUrl = 'http://localhost:8000/api/chapap/';
         $this->username=  env('REMOTE_USERNAME');
         $this->password =env('REMOTE_PASSWORD');
-        $this->remoteUrl = 'https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/';
+        $this->remoteUrl = 'https://pstest.puresight.com/cgi-bin/ProvisionAPI/';
     } 
 
  

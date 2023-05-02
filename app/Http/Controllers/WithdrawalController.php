@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Partners;
 use Illuminate\Http\Request;
+use App\Models\Withdrawals;
+
 
 class WithdrawalController extends Controller
 {
@@ -27,7 +30,23 @@ class WithdrawalController extends Controller
      */
     public function store(Request $request)
     {
-        //
+        $issueddate = now();
+        $withdraw = Withdrawals::create([
+            "partnerid" => $request->partnerid,
+            "amount" => $request->amount,
+            "channel" => $request->channel,
+            "accountno" => $request->accountno,
+            "issueddate" => $issueddate,
+            "status" => 0,
+        ]);
+
+        if ($withdraw) {
+            $message = 'succeed';
+        } else {
+            $message = 'not succeed';
+        }
+
+        return response()->json($message, 200);
     }
 
     /**
@@ -35,8 +54,10 @@ class WithdrawalController extends Controller
      */
     public function show(string $id)
     {
-        //
+        $withdraws = Withdrawals::where('partnerid', $id)->orderByDesc('id')->get();
+        return response()->json($withdraws, 200);
     }
+
 
     /**
      * Show the form for editing the specified resource.

@@ -28,6 +28,7 @@ return new class extends Migration
             $table->string("duedate");
             $table->integer("payment_method");
             $table->integer("coupon")->nullable();
+            $table->string("referralcode")->nullable();
             $table->integer("status")->nullable();
             $table->timestamps();
 

@@ -75,3 +75,7 @@ Route::put('changepass/{id}', [PartnerController::class, 'changepass']);
 Route::get('referred/{id}', [PartnerController::class, 'show']);
 Route::post('withdraw', [WithdrawalController::class, 'store']);
 Route::get('withdrawals/{id}', [WithdrawalController::class, 'show']);
+Route::get('referrals/{id}', [PartnerController::class, 'balance']);
+
+Route::post('forgotpassword', [PartnerController::class, 'forgotpassword']);
+Route::post('resetpassword', [PartnerController::class, 'resetpassword']);

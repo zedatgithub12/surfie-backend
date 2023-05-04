@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\PasswordResetLink;
 use Illuminate\Http\Request;
 use App\Models\Partners;
 use App\Models\Customers;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\DB;
 
 class PartnerController extends Controller
 {
@@ -15,36 +18,21 @@ class PartnerController extends Controller
      */
     public function login(Request $request)
     {
-
-
         $credentials = $request->only('email', 'password');
-
         $user = Partners::where('email', $credentials['email'])->first();
-
-
-
         if ($user && Hash::check($credentials['password'], $user->password)) {
             // The email and password match a record in the database
             $message = $user;
-
         } else {
             // No record was found with the given email and password
             $message = "83";
         }
-
         return response()->json($message, 200);
     }
 
     /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        //
-    }
-
-    /**
-     * Store a newly created resource in storage.
+     * Register Partner 
+     * it will be added to partners table
      */
     public function register(Request $request)
     {
@@ -52,15 +40,16 @@ class PartnerController extends Controller
         do {
             $referralCode = "surfie" . Str::random(6); // Generate a random value
         } while (Partners::where('referralcode', $referralCode)->exists());
-
-
         $emails = Partners::where('email', $request->email)->exists();
         $phones = Partners::where('phone', $request->phone)->exists();
+        $organization = Partners::where('organization', $request->organization)->exists();
 
         if ($emails) {
             $message = "80";
         } else if ($phones) {
             $message = "81";
+        } else if (!$request->organization == "" && $organization) {
+            $message = "82";
         } else {
 
             Partners::create([
@@ -81,7 +70,55 @@ class PartnerController extends Controller
 
         return response()->json($message, 200);
     }
+    public function forgotpassword(Request $request)
+    {
+        $email = $request->email;
+        $user = Partners::where('email', $email)->first();
 
+        if (!$user) {
+            return response()->json(['message' => 'Email not found'], 404);
+        }
+        $token = Str::random(60);
+        $addtotable = DB::table('password_reset_tokens')->where('email', $email)->first();
+        if (!$addtotable) {
+            DB::table('password_reset_tokens')->insert([
+                'email' => $email,
+                'token' => $token,
+                'created_at' => now()
+            ]);
+            $message = "Reset your password";
+            $data = ([
+                'token' => $token,
+                'message' => $message,
+
+            ]);
+            Mail::to($email)->send(new PasswordResetLink($data));
+
+            return response()->json(['message' => 'Password reset link sent to your email'], 200);
+        } else {
+            return response()->json(['message' => 'We have already sent you reset link check your inbox or spam folder'], 404);
+        }
+
+    }
+
+    public function resetpassword(Request $request)
+    {
+        $token = $request->token;
+        $password = $request->password;
+        $reset = DB::table('password_reset_tokens')->where('token', $token)->first();
+        if (!$reset) {
+            return response()->json(['message' => 'Invalid token'], 404);
+        }
+        $user = Partners::where('email', $reset->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        Partners::where('email', $user->email)->update(['password' => Hash::make($password)]);
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+        return response()->json(['message' => 'Password reset successful'], 200);
+    }
     /**
      * Display the specified resource.
      */
@@ -165,8 +202,20 @@ class PartnerController extends Controller
     /**
      * Remove the specified resource from storage.
      */
-    public function destroy(string $id)
+    public function balance(Request $request, string $id)
     {
-        //
+        $month = $request->month;
+
+        $customers = Customers::where('referralcode', $request->referral)->whereMonth('created_at', '=', date('m'))->count();
+        $total = Customers::where('referralcode', $request->referral)->count();
+        $profile = Partners::find($id);
+
+        if ($customers > 50) {
+            $balance = $profile->noreferral * 2;
+            return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $balance], 200);
+        } else {
+            return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $profile->noreferral], 200);
+        }
+
     }
 }

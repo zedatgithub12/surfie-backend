@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Get the latest code
-      - uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869
+        uses: shivammathur/setup-php@15c43e89cdef867065b0213be354c2841860869
         uses: actions/checkout@v3
       - name: Setup PHP
         uses: shivammathur/setup-php@v3

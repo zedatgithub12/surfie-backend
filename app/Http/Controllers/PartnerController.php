@@ -204,14 +204,13 @@ class PartnerController extends Controller
      */
     public function balance(Request $request, string $id)
     {
-        $month = $request->month;
 
-        $customers = Customers::where('referralcode', $request->referral)->whereMonth('created_at', '=', date('m'))->count();
+        $customers = Customers::whereMonth('created_at', '=', date('m'))->where('referralcode', '=', $request->referral)->count();
         $total = Customers::where('referralcode', $request->referral)->count();
         $profile = Partners::find($id);
 
-        if ($customers > 50) {
-            $balance = $profile->noreferral * 2;
+        if ($customers >= 50) {
+            $balance = $profile->balance * 2;
             return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $balance], 200);
         } else {
             return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $profile->noreferral], 200);

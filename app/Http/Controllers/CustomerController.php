@@ -19,7 +19,10 @@ use App\Mail\reactivation;
 use App\Mail\expired;
 use App\Mail\renewed;
 use SimpleXMLElement;
-
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
+use App\Mail\CustomerPasswordResetLink;
+use App\Http\Controllers\ChapaController;
 
 class CustomerController extends Controller
 {
@@ -59,7 +62,94 @@ class CustomerController extends Controller
 
         //  return response()-> json(Customers::get());
     }
+    public function login(Request $request)
+    {
+        $credentials = $request->only('email', 'password');
+        $user = Customers::where('email', $credentials['email'])->first();
+        if ($user && Hash::check($credentials['password'], $user->password)) {
+            // The email and password match a record in the database
+            $message = $user;
+        } else {
+            // No record was found with the given email and password
+            $message = "83";
+        }
+        return response()->json($message, 200);
+    }
+    public function forgotpassword(Request $request)
+    {
+        $email = $request->email;
+        $user = Customers::where('email', $email)->first();
 
+        if (!$user) {
+            return response()->json(['message' => 'Email not found'], 404);
+        }
+        $token = Str::random(60);
+        $addtotable = DB::table('password_reset_tokens')->where('email', $email)->first();
+        if (!$addtotable) {
+            DB::table('password_reset_tokens')->insert([
+                'email' => $email,
+                'token' => $token,
+                'created_at' => now()
+            ]);
+            $message = "Reset your password";
+            $data = ([
+                'token' => $token,
+                'message' => $message,
+
+            ]);
+            Mail::to($email)->send(new CustomerPasswordResetLink($data));
+
+            return response()->json(['message' => 'Password reset link sent to your email'], 200);
+        } else {
+            return response()->json(['message' => 'We have already sent you reset link check your inbox or spam folder'], 404);
+        }
+
+    }
+
+    public function resetpassword(Request $request)
+    {
+        $token = $request->token;
+        $password = $request->password;
+        $reset = DB::table('password_reset_tokens')->where('token', $token)->first();
+        if (!$reset) {
+            return response()->json(['message' => 'Invalid token'], 404);
+        }
+        $user = Customers::where('email', $reset->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found'], 404);
+        }
+
+        Customers::where('email', $user->email)->update(['password' => Hash::make($password)]);
+        DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+
+        return response()->json(['message' => 'Password reset successful'], 200);
+    }
+    public function changepass(Request $request, string $id)
+    {
+        $user = Customers::find($id);
+        if (!$user) {
+            return response()->json(['message' => 'Partner not found'], 404);
+        }
+
+        $this->validate($request, [
+            'oldpass' => 'required',
+            'newpass' => 'required|string',
+        ]);
+
+        $hashedPassword = $user->password;
+
+        if (Hash::check($request->oldpass, $hashedPassword)) {
+
+            $user->fill([
+                'password' => Hash::make($request->newpass)
+            ])->save();
+            return response()->json(['message' => 'changed successfully'], 200);
+
+        } else {
+            return response()->json(['message' => 'Old password does not match'], 500);
+        }
+
+    }
     public function singlec(string $id)
     {
         $customer = Customers::whereId($id)->get();
@@ -111,21 +201,18 @@ class CustomerController extends Controller
     // price generator 
     public function pricing($license, $subscription)
     {
-        $price = "";
-        // reinitiate price depending on user preferences
-        if ($license == "3" && $subscription === "monthly") {
-            $price = "450";
-        } else if ($license == "5" && $subscription === "monthly") {
-            $price = "600";
-        } else if ($license == "1" && $subscription === "annual") {
-            $price = "3300";
-        } else if ($license == "3" && $subscription === "annual") {
-            $price = "4950";
-        } else if ($license == "5" && $subscription === "annual") {
-            $price = "6600";
-        } else {
-            $price = "300";
-        }
+        $prices = array(
+            "1_monthly" => 450,
+            "5_monthly" => 600,
+            "10_monthly" => 600,
+            "1_annual" => 3300,
+            "5_annual" => 4950,
+            "10_annual" => 6600,
+            "default" => 300
+        );
+
+        $key = $license . "_" . $subscription;
+        $price = isset($prices[$key]) ? $prices[$key] : $prices["default"];
 
         return intval($price);
     }
@@ -207,13 +294,11 @@ class CustomerController extends Controller
         return Customers::where('first_name', 'LIKE', '%' . $q . '%')->orWhere('email', 'LIKE', '%' . $q . '%')->orWhere('id', 'LIKE', '%' . $q . '%')->get();
 
     }
-
     /**
      * Update the specified resource in storage.
      */
     public function add(Request $request, string $id)
     {
-
         $response = Http::get($this->remoteUrl . "RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
 
         $xml = new SimpleXMLElement($response);
@@ -236,10 +321,10 @@ class CustomerController extends Controller
                 $message = "0";
 
             } else {
-                $message = "adding" . $resid;
+                $message = $resid;
             }
         } else {
-            $message = "removing" . $resid;
+            $message = $resid;
         }
         return response()->json($message, 200);
     }
@@ -399,6 +484,7 @@ class CustomerController extends Controller
 
         return response()->json($message, 200);
     }
+
 
     // retrive counts from database
     public function counts()

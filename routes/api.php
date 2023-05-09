@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ChapaController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\HTTP\Controllers\AuthController;
@@ -11,6 +12,7 @@ use App\HTTP\Controllers\CouponController;
 use App\HTTP\Controllers\PaymentController;
 use App\HTTP\Controllers\PartnerController;
 use App\HTTP\Controllers\WithdrawalController;
+use App\Models\Customers;
 
 /*
 |--------------------------------------------------------------------------
@@ -63,10 +65,11 @@ Route::resource('trial', TrialController::class);
 // coupon code 
 Route::post('coupon/{id}', [CouponController::class, 'show']);
 
-//payment Gateways
+//Chapa Api's
 Route::get('chapa', [PaymentController::class, 'index']);
 Route::get('chapap/{id}', [PaymentController::class, 'chapaResponse']);
-
+Route::get('chaparenew/{id}', [ChapaController::class, 'chapaRenewResponse']);
+Route::get('chapaupgrade/{id}', [ChapaController::class, 'upgrade']);
 //partner Api's
 Route::post('pregister', [PartnerController::class, 'register']);
 Route::post('partnerlogin', [PartnerController::class, 'login']);
@@ -76,6 +79,45 @@ Route::get('referred/{id}', [PartnerController::class, 'show']);
 Route::post('withdraw', [WithdrawalController::class, 'store']);
 Route::get('withdrawals/{id}', [WithdrawalController::class, 'show']);
 Route::get('referrals/{id}', [PartnerController::class, 'balance']);
-
 Route::post('forgotpassword', [PartnerController::class, 'forgotpassword']);
 Route::post('resetpassword', [PartnerController::class, 'resetpassword']);
+
+//Parent Api's
+Route::post('parentlogin', [CustomerController::class, 'login']);
+Route::post('parentfpassword', [CustomerController::class, 'forgotpassword']);
+Route::post('parentrpassword', [CustomerController::class, 'resetpassword']);
+Route::put('changeppass/{id}', [CustomerController::class, 'changepass']);
+Route::put('upgrade/{id}', [CustomerController::class, 'upgrade']);
+
+Route::post('/renewal/{id}', function ($id, Request $request) {
+    $selectedGateway = $request->channel;
+
+    // Check if the selected payment gateway is valid
+    if ($selectedGateway != 1001 && $selectedGateway != 1002) {
+        return response()->json(['message' => 'Invalid payment gateway'], 400);
+    }
+
+    // Get the customer from the database
+    $customer = Customers::find($id);
+    if (!$customer) {
+        return response()->json(['message' => 'Customer not found'], 404);
+    }
+
+    // Call the appropriate payment controller based on the selected gateway
+    switch ($selectedGateway) {
+        case 1001:
+            $controller = app()->make('App\Http\Controllers\ChapaController');
+            break;
+        case 1002:
+            $controller = app()->make('App\Http\Controllers\TelebirrController');
+            break;
+        default:
+            return response()->json(['message' => 'Invalid payment gateway'], 400);
+    }
+
+    // Call the makePayment method on the payment controller
+    $result = $controller->makePayment($customer);
+    return response()->json($result, 200);
+    // Do something with the payment result
+
+});

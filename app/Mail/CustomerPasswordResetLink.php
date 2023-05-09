@@ -8,10 +8,13 @@ use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 use Illuminate\Mail\Mailables\Address;
 
-class PasswordResetLink extends Mailable
+class CustomerPasswordResetLink extends Mailable
 {
     use Queueable, SerializesModels;
-    public $data;
+
+    /**
+     * Create a new message instance.
+     */public $data;
     public function __construct($data)
     {
         $this->data = $data;
@@ -20,7 +23,7 @@ class PasswordResetLink extends Mailable
 
     public function build()
     {
-        return $this->markdown('emails.password_reset_link');
+        return $this->markdown('emails.customer_password_reset_link');
     }
     /**
      * Get the message envelope.
@@ -32,6 +35,9 @@ class PasswordResetLink extends Mailable
             subject: 'Reset Password!',
         );
     }
+    /**
+     * Get the message content definition.
+     */
 
     /**
      * Get the attachments for the message.

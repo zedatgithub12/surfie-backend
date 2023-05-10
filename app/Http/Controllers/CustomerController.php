@@ -297,7 +297,7 @@ class CustomerController extends Controller
     /**
      * Update the specified resource in storage.
      */
-    public function add(Request $request, string $id)
+    public function change(Request $request, string $id)
     {
         $response = Http::get($this->remoteUrl . "RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
 

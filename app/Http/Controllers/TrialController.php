@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
 use App\Models\Trial;
 use App\Mail\TrialEmail;
+
 class TrialController extends Controller
 {
     /**
@@ -29,21 +30,14 @@ class TrialController extends Controller
      */
     public function store(Request $request)
     {
-       
-       $exist = Trial::where('email', $request->email)->exists();
-       
-       if($exist){
-            $message = "exists";
-       }else{
         Trial::create([
-            'email'=> $request->email
+            'email' => $request->email
         ]);
-        
         Mail::to($request->email)->send(new TrialEmail());
         $message = "succeed";
-       }
-      
-        return response()->json( $message, 200);
+
+
+        return response()->json($message, 200);
     }
 
     /**

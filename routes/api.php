@@ -45,7 +45,7 @@ Route::group(['middleware' => 'api'], function () {
 Route::resource('customers', CustomerController::class);
 Route::get('singlecustomer/{id}', [CustomerController::class, 'singlec']);
 Route::get('search', [CustomerController::class, 'search']);
-Route::put('add/{id}', [CustomerController::class, 'add']);
+Route::put('add/{id}', [CustomerController::class, 'change']);
 Route::put('remove/{id}', [CustomerController::class, 'remove']);
 Route::put('deactivate/{id}', [CustomerController::class, 'deactivate']);
 Route::put('detach/{id}', [CustomerController::class, 'detach']);
@@ -69,7 +69,7 @@ Route::post('coupon/{id}', [CouponController::class, 'show']);
 Route::get('chapa', [PaymentController::class, 'index']);
 Route::get('chapap/{id}', [PaymentController::class, 'chapaResponse']);
 Route::get('chaparenew/{id}', [ChapaController::class, 'chapaRenewResponse']);
-Route::get('chapaupgrade/{id}', [ChapaController::class, 'upgrade']);
+Route::get('chapaupgrade/{id}', [ChapaController::class, 'chapaUpgradeResponse']);
 //partner Api's
 Route::post('pregister', [PartnerController::class, 'register']);
 Route::post('partnerlogin', [PartnerController::class, 'login']);
@@ -87,7 +87,7 @@ Route::post('parentlogin', [CustomerController::class, 'login']);
 Route::post('parentfpassword', [CustomerController::class, 'forgotpassword']);
 Route::post('parentrpassword', [CustomerController::class, 'resetpassword']);
 Route::put('changeppass/{id}', [CustomerController::class, 'changepass']);
-Route::put('upgrade/{id}', [CustomerController::class, 'upgrade']);
+
 
 Route::post('/renewal/{id}', function ($id, Request $request) {
     $selectedGateway = $request->channel;
@@ -116,7 +116,39 @@ Route::post('/renewal/{id}', function ($id, Request $request) {
     }
 
     // Call the makePayment method on the payment controller
-    $result = $controller->makePayment($customer);
+    $result = $controller->makeRenewalPayment($customer);
+    return response()->json($result, 200);
+    // Do something with the payment result
+
+});
+Route::post('/upgrade/{id}', function ($id, Request $request) {
+    $selectedGateway = $request->channel;
+
+    // Check if the selected payment gateway is valid
+    if ($selectedGateway != 1001 && $selectedGateway != 1002) {
+        return response()->json(['message' => 'Invalid payment gateway'], 400);
+    }
+
+    // Get the customer from the database
+    $customer = Customers::find($id);
+    if (!$customer) {
+        return response()->json(['message' => 'Customer not found'], 404);
+    }
+
+    // Call the appropriate payment controller based on the selected gateway
+    switch ($selectedGateway) {
+        case 1001:
+            $controller = app()->make('App\Http\Controllers\ChapaController');
+            break;
+        case 1002:
+            $controller = app()->make('App\Http\Controllers\TelebirrController');
+            break;
+        default:
+            return response()->json(['message' => 'Invalid payment gateway'], 400);
+    }
+
+    // Call the makePayment method on the payment controller
+    $result = $controller->makeUpgradePayment($customer);
     return response()->json($result, 200);
     // Do something with the payment result
 

@@ -155,12 +155,37 @@ class CustomerController extends Controller
         $customer = Customers::whereId($id)->get();
         return response()->json($customer, 200);
     }
+
+
+    // price generator 
+    public function pricing($license, $subscription)
+    {
+        $prices = array(
+            "1_monthly" => 512,
+            "5_monthly" => 675,
+            "10_monthly" => 925,
+            "1_annual" => 3595,
+            "5_annual" => 4740,
+            "10_annual" => 6465,
+            "default" => 0
+        );
+
+        $key = $license . "_" . $subscription;
+        $price = isset($prices[$key]) ? $prices[$key] : $prices["default"];
+
+        return intval($price);
+    }
+
     /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request)
     {
-
+        $referral_code = $request->referral;
+        $amount = $this->pricing($request->license, $request->subscription);
+        $startDate = now()->startOfMonth();
+        $endDate = now()->endOfMonth();
+        //check if email and phone exist
         $emails = Customers::where('email', $request->emailaddress)->exists();
         $phones = Customers::where('phone', $request->phone)->exists();
 
@@ -185,9 +210,32 @@ class CustomerController extends Controller
                 'referralcode' => $request->referral,
                 'status' => $request->status,
             ]);
-            $refcount = Partners::where('referralcode', $request->referral);
-            $refcount->increment('noreferral');
+            if ($referral_code) {
+                // Get the partner with the provided referral code
+                $partner = Partners::where('referralcode', $referral_code)->first();
 
+                // If a partner was found with the provided referral code, update their balance and referral count
+                if ($partner) {
+                    // Add the referral incentive to the partner's balance
+                    $incentive = $amount * 0.05;
+                    $partner->balance += $incentive;
+
+                    // Increment the partner's referral count and check if they've referred 50 or more customers
+                    $partner->noreferral++;
+
+                    $referralCount = DB::table('customers')->where('referralcode', $referral_code)->whereBetween('created_at', [$startDate, $endDate])->count();
+
+                    // if ($referralCount >= 50) {
+                    //     // If the partner has referred 50 or more customers, update their commission rate to 10%
+                    //     // if ($partner->commission_rate != 10) {
+                    //     //     $partner->commission_rate = 10;
+                    //     // }
+                    // }
+                }
+
+                // Save the partner's updated balance and referral count to the database
+                $partner->save();
+            }
             $message = "0";
         }
 
@@ -198,23 +246,51 @@ class CustomerController extends Controller
         }
     }
 
-    // price generator 
-    public function pricing($license, $subscription)
+    public function upgradeCommissions($referralCode)
     {
-        $prices = array(
-            "1_monthly" => 450,
-            "5_monthly" => 600,
-            "10_monthly" => 600,
-            "1_annual" => 3300,
-            "5_annual" => 4950,
-            "10_annual" => 6600,
-            "default" => 300
-        );
+        // Get the current month and year
+        $month = date('m');
+        $year = date('Y');
 
-        $key = $license . "_" . $subscription;
-        $price = isset($prices[$key]) ? $prices[$key] : $prices["default"];
+        // Get the partner associated with the referral code
+        $partner = Partners::where('referralcode', $referralCode)->first();
 
-        return intval($price);
+        // If no partner is found, return an error response
+        if (!$partner) {
+            return response()->json(['error' => 'Invalid referral code']);
+        }
+
+        // Get all customers referred by the partner this month
+        $customers = $partner->customers()->whereRaw("MONTH(created_at) = $month AND YEAR(created_at) = $year")->get();
+
+        // Loop through each customer and calculate their commission for this month
+        $commission = 0;
+        foreach ($customers as $customer) {
+
+            $commission += $customer->subscription_payment * ($partner->commission_rate / 100);
+            $customer->save();
+
+        }
+        // // If the partner's commission rate is 5%, subtract the commission from their balance
+        // if ($partner->commission_rate == 5) {
+        //     $partner->balance -= $commission;
+        // }
+
+        // If the partner's commission rate is 10%, mark them as having received their commission for this month
+        if ($partner->commission_rate == 10) {
+            $partner->commission_received = true;
+        }
+
+        // If the partner has referred 50 or more customers, upgrade their commission rate to 10%
+        if ($partner->noreferral >= 50 && $partner->commission_rate != 10) {
+            $partner->commission_rate = 10;
+        }
+
+        // Save the partner's updated balance, commission rate, and commission received status to the database
+        $partner->save();
+
+        // Return a response indicating success
+        return response()->json(['success' => true, 'message' => 'Commission upgrade successful']);
     }
     function referenceNo()
     {

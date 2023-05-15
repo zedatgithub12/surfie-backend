@@ -127,12 +127,17 @@ class PartnerController extends Controller
         $customers = Customers::query()->where('referralcode', $id)->orderByDesc('id')->paginate(12);
         return response()->json($customers, 200);
     }
+
     /**
-     * Show the form for editing the specified resource.
+     * fetch customers in storage.
      */
-    public function edit(string $id)
+    public function index()
     {
-        //
+        $partners = Partners::all();
+        return response()->json([
+            'success' => true,
+            'data' => $partners
+        ], 200);
     }
 
     /**
@@ -209,12 +214,21 @@ class PartnerController extends Controller
         $total = Customers::where('referralcode', $request->referral)->count();
         $profile = Partners::find($id);
 
-        if ($customers >= 50) {
-            $balance = $profile->balance * 2;
-            return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $balance], 200);
-        } else {
-            return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $profile->noreferral], 200);
-        }
+        return response()->json(['total' => $total, 'monthly' => $customers, 'balance' => $profile->noreferral], 200);
 
+
+    }
+
+    public function destroy(string $id)
+    {
+        $record = Partners::find($id);
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        }
+        $record->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'Partner info deleted successfully.'
+        ], 200);
     }
 }

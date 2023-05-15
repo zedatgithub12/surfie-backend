@@ -29,9 +29,9 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
 
-Route::middleware('auth:sanctum')->get('/partners', function (Request $request) {
-    return $request->partners();
-});
+// Route::middleware('auth:sanctum')->get('/partners', function (Request $request) {
+//     return $request->partners();
+// });
 
 
 Route::post('login', [AuthController::class, 'login']);
@@ -81,6 +81,8 @@ Route::get('withdrawals/{id}', [WithdrawalController::class, 'show']);
 Route::get('referrals/{id}', [PartnerController::class, 'balance']);
 Route::post('forgotpassword', [PartnerController::class, 'forgotpassword']);
 Route::post('resetpassword', [PartnerController::class, 'resetpassword']);
+Route::get('partners', [PartnerController::class, 'index']);
+Route::delete('deletepartner/{id}', [PartnerController::class, 'destroy']);
 
 //Parent Api's
 Route::post('parentlogin', [CustomerController::class, 'login']);

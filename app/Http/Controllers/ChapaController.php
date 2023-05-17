@@ -154,6 +154,7 @@ class ChapaController extends Controller
         }
         $customer->update([
             'duedate' => $dueDate,
+            'payment_method' => '1001',
             'status' => '1',
         ]);
     }
@@ -238,6 +239,7 @@ class ChapaController extends Controller
         $dueDate = date('Y-m-d', strtotime($customer->duedate . ' +1 year'));
         $customer->update([
             'subscription' => 'annual',
+            'payment_method' => '1001',
             'duedate' => $dueDate,
             'status' => '1',
         ]);

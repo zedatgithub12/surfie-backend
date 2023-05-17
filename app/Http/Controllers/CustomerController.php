@@ -46,7 +46,7 @@ class CustomerController extends Controller
         $this->surfieUrl = 'http://localhost:8000/api/chapap/';
         $this->username = env('REMOTE_USERNAME');
         $this->password = env('REMOTE_PASSWORD');
-        $this->remoteUrl = 'https://surfie-t.puresight.com/cgi-bin/ProvisionAPI/';
+        $this->remoteUrl = 'https://surfie.puresight.com/cgi-bin/ProvisionAPI/';
     }
 
 
@@ -182,9 +182,9 @@ class CustomerController extends Controller
     public function store(Request $request)
     {
         $referral_code = $request->referral;
-        $amount = $this->pricing($request->license, $request->subscription);
-        $startDate = now()->startOfMonth();
-        $endDate = now()->endOfMonth();
+        // $amount = $this->pricing($request->license, $request->subscription);
+        // $startDate = now()->startOfMonth();
+        // $endDate = now()->endOfMonth();
         //check if email and phone exist
         $emails = Customers::where('email', $request->emailaddress)->exists();
         $phones = Customers::where('phone', $request->phone)->exists();
@@ -210,27 +210,17 @@ class CustomerController extends Controller
                 'referralcode' => $request->referral,
                 'status' => $request->status,
             ]);
+
             if ($referral_code) {
+
                 // Get the partner with the provided referral code
                 $partner = Partners::where('referralcode', $referral_code)->first();
 
                 // If a partner was found with the provided referral code, update their balance and referral count
                 if ($partner) {
-                    // Add the referral incentive to the partner's balance
-                    $incentive = $amount * 0.05;
-                    $partner->balance += $incentive;
 
                     // Increment the partner's referral count and check if they've referred 50 or more customers
                     $partner->noreferral++;
-
-                    $referralCount = DB::table('customers')->where('referralcode', $referral_code)->whereBetween('created_at', [$startDate, $endDate])->count();
-
-                    // if ($referralCount >= 50) {
-                    //     // If the partner has referred 50 or more customers, update their commission rate to 10%
-                    //     // if ($partner->commission_rate != 10) {
-                    //     //     $partner->commission_rate = 10;
-                    //     // }
-                    // }
                 }
 
                 // Save the partner's updated balance and referral count to the database
@@ -239,7 +229,7 @@ class CustomerController extends Controller
             $message = "0";
         }
 
-        if (!($request->payment == "1000") && $message == "0") {
+        if ($request->payment === "1001" && $message == "0") {
             return $this->payment($request, $cid);
         } else {
             return response()->json($message, 200);
@@ -339,7 +329,7 @@ class CustomerController extends Controller
 
         ]);
         $message = "";
-        if ($request->payment == "1001") {
+        if ($request->payment === "1001") {
             $chapaResponse = Http::withToken($this->secretKey)->post(
                 $this->baseUrl . '/transaction/initialize',
                 $data
@@ -408,8 +398,6 @@ class CustomerController extends Controller
     // downgrade number of license 
     public function remove(Request $request, string $id)
     {
-
-
         $response = Http::get($this->remoteUrl . "RemoveSubscription.py?accountId=$request->remoteid&subscriptionId=1&packageId=$request->currentPackage&adminUser=$this->username&adminPassword=$this->password");
         $xml = new SimpleXMLElement($response);
         $status = $xml->Status;
@@ -489,7 +477,7 @@ class CustomerController extends Controller
             $accountid = (string) $data->attributes()->account_id;
 
             $dueDate = "";
-            if ($request->subscription === "annual") {
+            if ($customer->subscription === "annual") {
                 $dueDate = Carbon::now()->addYear();
             } else {
                 $dueDate = Carbon::now()->addMonth();
@@ -500,6 +488,24 @@ class CustomerController extends Controller
                 'duedate' => $dueDate,
                 'status' => $request->status,
             ]);
+
+            if ($customer->referralcode) {
+
+                $amount = $this->pricing($customer->license, $customer->subscription);
+                // Get the partner with the provided referral code
+                $partner = Partners::where('referralcode', $customer->referralcode)->first();
+
+                // If a partner was found with the provided referral code, update their balance and referral count
+                if ($partner) {
+                    // Add the referral incentive to the partner's balance
+                    $incentive = $amount * 0.05;
+                    $partner->balance += $incentive;
+
+                }
+
+                // Save the partner's updated balance and referral count to the database
+                $partner->save();
+            }
             $message = $resid;
         } else if ($response->serverError()) {
             $message = "500";

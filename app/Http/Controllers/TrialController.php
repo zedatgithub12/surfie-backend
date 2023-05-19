@@ -14,7 +14,11 @@ class TrialController extends Controller
      */
     public function index()
     {
-        //
+        $Trials = Trial::all();
+        return response()->json([
+            'success' => true,
+            'data' => $Trials
+        ], 200);
     }
 
     /**

@@ -156,6 +156,21 @@ class CustomerController extends Controller
         return response()->json($customer, 200);
     }
 
+    // find a user whole duedate passed 
+    public function expired()
+    {
+        $currentDate = date('Y-m-d');
+        $customers = Customers::where('duedate', '<', $currentDate)
+            ->where('status', 1)
+            ->orWhere('status', 2)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $customers
+        ], 200);
+    }
+
 
     // price generator 
     public function pricing($license, $subscription)
@@ -464,6 +479,19 @@ class CustomerController extends Controller
         return response()->json($message, 200);
     }
 
+
+    public function destroy(string $id)
+    {
+        $record = Customers::find($id);
+        if (!$record) {
+            return response()->json(['success' => false, 'message' => 'Record not found'], 404);
+        }
+        $record->delete();
+        return response()->json([
+            'success' => true,
+            'message' => 'Customer deleted successfully.'
+        ], 200);
+    }
     public function activate(Request $request, string $id)
     {
         $customer = Customers::whereId($id)->first();
@@ -529,11 +557,8 @@ class CustomerController extends Controller
         Mail::to($email)->send(new activation($data));
         return response()->json($message, 200);
     }
-
     public function reactivate(Request $request, string $id)
     {
-
-
         $response = Http::get($this->remoteUrl . "ActivateAccount.py?accountId=$request->remote_id&adminUser=$this->username&adminPassword=$this->password");
         $xml = new SimpleXMLElement($response);
         $status = $xml->Status;
@@ -566,8 +591,6 @@ class CustomerController extends Controller
 
         return response()->json($message, 200);
     }
-
-
     // retrive counts from database
     public function counts()
     {

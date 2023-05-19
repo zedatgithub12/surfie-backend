@@ -44,11 +44,14 @@ Route::group(['middleware' => 'api'], function () {
 
 Route::resource('customers', CustomerController::class);
 Route::get('singlecustomer/{id}', [CustomerController::class, 'singlec']);
+Route::get('expired', [CustomerController::class, 'expired']);
 Route::get('search', [CustomerController::class, 'search']);
 Route::put('add/{id}', [CustomerController::class, 'change']);
 Route::put('remove/{id}', [CustomerController::class, 'remove']);
 Route::put('deactivate/{id}', [CustomerController::class, 'deactivate']);
 Route::put('detach/{id}', [CustomerController::class, 'detach']);
+Route::delete('deletecustomer/{id}', [CustomerController::class, 'destroy']);
+
 
 Route::get('pending', [CustomerController::class, 'counts']);
 Route::put('activate/{id}', [CustomerController::class, 'activate']);
@@ -56,7 +59,6 @@ Route::put('reactivate/{id}', [CustomerController::class, 'reactivate']);
 Route::post('newquery', [SupportController::class, 'store']);
 Route::get('support', [SupportController::class, 'index']);
 Route::put('closeticket/{id}', [SupportController::class, 'close']);
-
 Route::post('compose', [MailController::class, 'send']);
 
 //free trial email collection field
@@ -90,6 +92,8 @@ Route::post('parentfpassword', [CustomerController::class, 'forgotpassword']);
 Route::post('parentrpassword', [CustomerController::class, 'resetpassword']);
 Route::put('changeppass/{id}', [CustomerController::class, 'changepass']);
 
+//free trials Api's
+Route::get('trials', [TrialController::class, 'index']);
 
 Route::post('/renewal/{id}', function ($id, Request $request) {
     $selectedGateway = $request->channel;
